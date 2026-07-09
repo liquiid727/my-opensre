@@ -1,0 +1,5 @@
+id: spec-driven-default
+name: Spec Driven Default
+steps:
+  - id: smoke-agent-kit
+    run: "node -e \"const fs=require('fs'); for (const p of ['.agents/manifest.yaml','ai/agents/spec-editor.md','rules/README.md','current/README.md','docs/spec-modes/README.md','design/README.md','specs/README.md','specs/roadmap.md','implementation/README.md','reviews/README.md','tests/README.md']) { if (!fs.existsSync(p)) throw new Error('Missing '+p); } console.log('agent-kit-smoke-ok');\""

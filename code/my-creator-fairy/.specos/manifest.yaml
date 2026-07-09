@@ -1,0 +1,20 @@
+project:
+  name: specos-agent-team-kit
+  type: fullstack
+projectMode: goalspec
+stacks:
+  frontend: next
+  backend: node-api
+artifacts:
+  draftsDir: spec-draft
+  specsDir: specs
+  testsDir: tests
+  resultsDir: tests/results
+rulePacks:
+  - spec-driven-delivery
+agentTemplates:
+  - fullstack-agent
+workflows:
+  - spec-driven-default
+ci:
+  checkCommand: npx specos check

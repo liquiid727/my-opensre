@@ -1,0 +1,10 @@
+{
+  "id": "specos-agent-team-kit",
+  "generatedAt": "2026-07-07T06:16:39.688Z",
+  "source": "../../SpecOps-Web-Console",
+  "copiedFiles": 210,
+  "excluded": [
+    "tests/results/*.json",
+    ".codex/config.toml"
+  ]
+}

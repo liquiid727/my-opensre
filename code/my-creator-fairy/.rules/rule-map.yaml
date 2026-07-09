@@ -1,0 +1,83 @@
+version: 1
+project: specos-ai
+
+default_entrypoint:
+  - .rules/project.md
+  - AGENTS.md
+
+work_types:
+  backend:
+    rules:
+      - rules/backend/go-backend-governance.md
+      - rules/backend/redis-key-governance.md
+      - rules/shared/error-code-governance.md
+    agents:
+      - implementation-agent
+      - ddd-domain-agent
+      - openapi-agent
+      - db-migration-agent
+      - test-editor
+
+  frontend:
+    rules:
+      - rules/frontend/react-workbench-delivery.md
+      - rules/shared/error-code-governance.md
+    agents:
+      - implementation-agent
+      - ui-design-agent
+      - test-editor
+
+  ui_prototype:
+    rules:
+      - rules/ui/design-governance.md
+      - rules/ui/pencil-prototype-ui.md
+      - rules/frontend/react-workbench-delivery.md
+    agents:
+      - architecture-agent
+      - spec-editor
+      - ui-design-agent
+
+  spec:
+    rules:
+      - specs/_rules/README.md
+      - rules/testing/production-test-standards.md
+      - rules/shared/error-code-governance.md
+    agents:
+      - architecture-agent
+      - spec-editor
+      - ddd-domain-agent
+      - test-editor
+
+  tests:
+    rules:
+      - tests/README.md
+      - rules/testing/production-test-standards.md
+      - rules/ci/spec-release-gates.md
+    agents:
+      - testing-agent
+      - test-editor
+      - playwright-test-agent
+      - qa-agent
+
+  ci:
+    rules:
+      - rules/testing/production-test-standards.md
+      - rules/ci/spec-release-gates.md
+      - scripts/checks/README.md
+    agents:
+      - deployment-agent
+      - ci-editor
+      - execution-editor
+      - qa-agent
+
+  orchestration:
+    rules:
+      - ai/workflows/README.md
+      - scripts/orchestration/README.md
+      - rules/ci/spec-release-gates.md
+    agents:
+      - deployment-agent
+      - execution-editor
+      - ci-editor
+      - qa-agent
+      - reviewer

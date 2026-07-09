@@ -1,0 +1,70 @@
+id: specos-agent-team-kit
+name: SpecOS Agent Team Kit
+version: 0.1.0
+specosVersion: ">=0.1.0"
+projectTypes:
+  - backend
+  - frontend
+  - mixed
+  - fullstack
+  - spec-only
+installs:
+  - target: AGENTS.md
+    from: files/AGENTS.md
+  - target: .agents/
+    from: files/.agents/
+  - target: ai/agents/
+    from: files/ai/agents/
+  - target: ai/workflows/
+    from: files/ai/workflows/
+  - target: .rules/
+    from: files/.rules/
+  - target: rules/
+    from: files/rules/
+  - target: .codex/instructions.md
+    from: files/.codex/instructions.md
+  - target: .codex/skills/
+    from: files/.codex/skills/
+  - target: .skills/
+    from: files/.skills/
+  - target: current/
+    from: files/current/
+  - target: docs/spec-modes/
+    from: files/docs/spec-modes/
+  - target: spec-draft/
+    from: files/spec-draft/
+  - target: design/
+    from: files/design/
+  - target: specs/
+    from: files/specs/
+  - target: implementation/
+    from: files/implementation/
+  - target: reviews/
+    from: files/reviews/
+  - target: tests/
+    from: files/tests/
+  - target: scripts/README.md
+    from: files/scripts/README.md
+  - target: scripts/orchestration/README.md
+    from: files/scripts/orchestration/README.md
+  - target: scripts/checks/README.md
+    from: files/scripts/checks/README.md
+  - target: .specos/manifest.yaml
+    from: files/.specos/manifest.yaml
+  - target: .specos/workflows/
+    from: files/.specos/workflows/
+workflow:
+  default: spec-driven-default
+  available:
+    - spec-driven-default
+entrypoints:
+  draftTemplate: spec-draft/_template/feature/product-ui.template.md
+  designTemplate: design/_template/platform-design.template.md
+  specTemplate: specs/_template/feature/spec.example.md
+  workflowId: spec-driven-default
+capabilities:
+  refineSpec: true
+  generateTestPlan: true
+  runApiTests: true
+  runUiTests: true
+  normalizeResults: true
