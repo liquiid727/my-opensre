@@ -2,37 +2,32 @@
 
 Use this file as the only canonical index for epic grouping, release sequencing, and feature-spec dependencies.
 
-## Example Structure
+## Creator OS
 
-### Risk Platform
+### Platform Foundation
 
-#### Foundation
+- `RP-001 Platform Adapter Contract`
 
-- `RP-001 Event Ingestion`
-- `RP-002 Decision API`
-- `RP-003 Risk Profile`
-- `RP-004 Entity Profile`
+### MVP01 Adapters
 
-#### Rule Engine
-
-- `RP-010 Policy`
-- `RP-011 Rule`
-- `RP-012 Condition`
-
-#### Admin
-
-- `RP-020 User Risk`
-- `RP-021 List Management`
+- `RP-002 Xiaohongshu Adapter` _(planned)_
+- `RP-003 WeChat MP Adapter` _(planned)_
+- `RP-004 Adapter Task Runtime` _(planned)_
+- `RP-005 Credential Vault and Audit` _(planned)_
 
 ## Release Order
 
 ### Release v0.1
 
-1. `RP-001 Event Ingestion`
-2. `RP-003 Risk Profile`
-3. `RP-002 Decision API`
+1. `RP-001 Platform Adapter Contract`
+2. `RP-002 Xiaohongshu Adapter`
+3. `RP-003 WeChat MP Adapter`
+4. `RP-004 Adapter Task Runtime`
+5. `RP-005 Credential Vault and Audit`
 
 ## Dependency Notes
 
-- `RP-002` depends on `RP-003` and `RP-004`
-- `RP-010` depends on `RP-002`
+- `RP-002` depends on `RP-001`.
+- `RP-003` depends on `RP-001`.
+- `RP-004` depends on `RP-001` and provides scheduler/runtime support for `RP-002` and `RP-003`.
+- `RP-005` depends on `RP-001` and must land before any C-end credential hosting or write-operation automation.

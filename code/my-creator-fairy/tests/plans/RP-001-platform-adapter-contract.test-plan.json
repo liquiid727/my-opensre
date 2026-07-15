@@ -1,0 +1,120 @@
+{
+  "spec_id": "RP-001",
+  "title": "Platform Adapter Contract Test Plan",
+  "status": "implemented",
+  "source_spec": "specs/RP-001-platform-adapter-contract/spec.md",
+  "standardVersion": "0.1.0",
+  "owner_agents": ["testing-agent", "specialized-check-agent"],
+  "executed_at": "2026-07-15",
+  "execution_root": "/Users/mac_liquiid/Desktop/code/creatorhub",
+  "commands": [
+    {
+      "command": "python3 -m compileall -q app/platform_adapter app/main.py app/engine/monitor.py tests",
+      "result": "passed"
+    },
+    {
+      "command": "PYTHONPATH=. python3 tests/test_platform_adapter_contract.py",
+      "result": "passed"
+    },
+    {
+      "command": "PYTHONPATH=. python3 tests/test_xiaohongshu_adapter.py",
+      "result": "passed"
+    },
+    {
+      "command": "PYTHONPATH=. python3 tests/test_adapter_task_runtime.py",
+      "result": "passed"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "RP-001-T001",
+      "priority": "P0",
+      "name": "adapter registry returns explicit capability matrix",
+      "given": "fake adapters for douyin, xiaohongshu, kuaishou, channels are registered",
+      "when": "GET /api/platform-adapters/capabilities is called",
+      "then": "response lists each platform and all capability booleans explicitly",
+      "status": "covered",
+      "evidence": "tests/test_platform_adapter_contract.py"
+    },
+    {
+      "id": "RP-001-T002",
+      "priority": "P0",
+      "name": "unsupported capability fails with standard error",
+      "given": "channels adapter declares public_content_monitor=false",
+      "when": "a public content fetch is requested for channels",
+      "then": "service returns PLATFORM_CAPABILITY_UNSUPPORTED and creates no success task",
+      "status": "covered",
+      "evidence": "tests/test_platform_adapter_contract.py"
+    },
+    {
+      "id": "RP-001-T003",
+      "priority": "P0",
+      "name": "credential material is redacted",
+      "given": "an account has credential_ref, proxy_ref, and runtime_profile_ref",
+      "when": "account health or capabilities are returned",
+      "then": "no cookie, storage_state, proxy password, or profile directory appears in API output",
+      "status": "partial",
+      "evidence": "contracts avoid exposing credential fields; production vault/API redaction remains follow-up"
+    },
+    {
+      "id": "RP-001-T004",
+      "priority": "P0",
+      "name": "write task requires idempotency and audit fields",
+      "given": "a publish or social action request",
+      "when": "idempotency_key is missing",
+      "then": "request is rejected before adapter invocation",
+      "status": "planned",
+      "evidence": "requires future production task schema; current creatorhub legacy tasks do not yet enforce idempotency"
+    },
+    {
+      "id": "RP-001-T005",
+      "priority": "P1",
+      "name": "creatorhub content normalizer removes platform-biased field names",
+      "given": "sample Aweme/MediaItem style data from creatorhub",
+      "when": "normalizer maps it to ContentItem/MediaAsset",
+      "then": "output uses platform_content_id and platform_extra instead of aweme_id/sec_uid as global fields",
+      "status": "covered",
+      "evidence": "tests/test_platform_adapter_contract.py and tests/test_xiaohongshu_adapter.py"
+    },
+    {
+      "id": "RP-001-T006",
+      "priority": "P1",
+      "name": "adapter degraded state is visible",
+      "given": "adapter raises PLATFORM_SELECTOR_CHANGED",
+      "when": "health endpoint is queried",
+      "then": "status is degraded with safe last_error_code and no sensitive diagnostics inline",
+      "status": "planned",
+      "evidence": "adapter health endpoint not implemented in this slice"
+    },
+    {
+      "id": "RP-002-T001",
+      "priority": "P0",
+      "name": "xiaohongshu adapter is registered as concrete adapter",
+      "given": "default registry is built",
+      "when": "xhs adapter is requested",
+      "then": "registry returns XiaohongshuAdapter with keyword and publish capabilities",
+      "status": "covered",
+      "evidence": "tests/test_xiaohongshu_adapter.py"
+    },
+    {
+      "id": "RP-002-T002",
+      "priority": "P0",
+      "name": "xiaohongshu keyword resolution is network-free",
+      "given": "keyword input",
+      "when": "resolve_target is called with target_kind=keyword",
+      "then": "TargetRef is returned without platform network dependency",
+      "status": "covered",
+      "evidence": "tests/test_xiaohongshu_adapter.py"
+    },
+    {
+      "id": "RP-004-T001",
+      "priority": "P1",
+      "name": "adapter task runtime delegates XHS scan/comment/publish/comment-post helpers",
+      "given": "fake XHS adapter and client",
+      "when": "runtime scan, comment fetch, publish, comment post, target discovery, and media refresh helpers run",
+      "then": "runtime returns normalized legacy-compatible results without engine platform internals",
+      "status": "covered",
+      "evidence": "tests/test_adapter_task_runtime.py"
+    }
+  ]
+}

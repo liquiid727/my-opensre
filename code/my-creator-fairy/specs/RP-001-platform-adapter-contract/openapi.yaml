@@ -1,0 +1,377 @@
+openapi: 3.1.0
+info:
+  title: platform-adapter-contract
+  version: 0.1.0
+paths:
+  /api/platform-adapters/capabilities:
+    get:
+      summary: List platform adapter capabilities
+      responses:
+        "200":
+          description: Capability matrix
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  adapters:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/AdapterCapability"
+  /api/platform-adapters/{platform}/health:
+    get:
+      summary: Get adapter health
+      parameters:
+        - $ref: "#/components/parameters/Platform"
+      responses:
+        "200":
+          description: Adapter health
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdapterHealth"
+        "404":
+          description: Unknown platform
+  /api/platform-adapters/{platform}/resolve-target:
+    post:
+      summary: Resolve user supplied URL or id into a platform target reference
+      parameters:
+        - $ref: "#/components/parameters/Platform"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResolveTargetRequest"
+      responses:
+        "200":
+          description: Target reference
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TargetRef"
+        "400":
+          description: Invalid target input
+  /api/platform-adapters/{platform}/accounts/check:
+    post:
+      summary: Check account credential and runtime health
+      parameters:
+        - $ref: "#/components/parameters/Platform"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [account_id]
+              properties:
+                account_id:
+                  type: string
+      responses:
+        "200":
+          description: Account health
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountHealth"
+  /api/platform-adapters/{platform}/contents/fetch:
+    post:
+      summary: Fetch platform contents through adapter
+      parameters:
+        - $ref: "#/components/parameters/Platform"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContentFetchRequest"
+      responses:
+        "200":
+          description: Fetched contents
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ContentItem"
+                  next_cursor:
+                    type: string
+                  degraded:
+                    type: boolean
+                  error_code:
+                    type: string
+  /api/platform-adapters/{platform}/comments/fetch:
+    post:
+      summary: Fetch comments through adapter
+      parameters:
+        - $ref: "#/components/parameters/Platform"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommentFetchRequest"
+      responses:
+        "200":
+          description: Fetched comments
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  comments:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Comment"
+                  next_cursor:
+                    type: string
+                  degraded:
+                    type: boolean
+                  error_code:
+                    type: string
+  /api/platform-adapters/{platform}/publish-tasks:
+    post:
+      summary: Create a publish task
+      parameters:
+        - $ref: "#/components/parameters/Platform"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PublishTaskCreate"
+      responses:
+        "202":
+          description: Publish task accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskAccepted"
+        "409":
+          description: Duplicate idempotency key
+  /api/platform-adapters/{platform}/social-action-tasks:
+    post:
+      summary: Create a comment/follow/dm social action task
+      parameters:
+        - $ref: "#/components/parameters/Platform"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SocialActionTaskCreate"
+      responses:
+        "202":
+          description: Social action task accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskAccepted"
+        "400":
+          description: Capability unsupported or invalid payload
+components:
+  parameters:
+    Platform:
+      name: platform
+      in: path
+      required: true
+      schema:
+        type: string
+        enum: [douyin, xiaohongshu, kuaishou, channels, wechat_mp]
+  schemas:
+    AdapterCapability:
+      type: object
+      required: [platform, display_name, capabilities]
+      properties:
+        platform:
+          type: string
+        display_name:
+          type: string
+        adapter_version:
+          type: string
+        capabilities:
+          $ref: "#/components/schemas/PlatformCapabilities"
+    PlatformCapabilities:
+      type: object
+      properties:
+        public_content_monitor: { type: boolean }
+        keyword_search: { type: boolean }
+        own_account_works: { type: boolean }
+        content_download: { type: boolean }
+        comment_read: { type: boolean }
+        comment_write: { type: boolean }
+        publish: { type: boolean }
+        follow_graph: { type: boolean }
+        dm: { type: boolean }
+        creator_center: { type: boolean }
+        requires_logged_account_for_read: { type: boolean }
+        supports_browser_runtime: { type: boolean }
+        supports_api_runtime: { type: boolean }
+        known_limits:
+          type: array
+          items: { type: string }
+    AdapterHealth:
+      type: object
+      properties:
+        platform: { type: string }
+        status:
+          type: string
+          enum: [healthy, degraded, down, unknown]
+        credential_status:
+          type: string
+          enum: [valid, invalid, unknown, not_required]
+        runtime_status: { type: string }
+        last_success_at: { type: string, format: date-time }
+        last_failure_at: { type: string, format: date-time }
+        last_error_code: { type: string }
+        last_error_message: { type: string }
+        adapter_version: { type: string }
+    ResolveTargetRequest:
+      type: object
+      required: [input]
+      properties:
+        input: { type: string }
+        target_kind:
+          type: string
+          enum: [auto, creator, keyword, content, own_account]
+        account_id: { type: string }
+    TargetRef:
+      type: object
+      properties:
+        platform: { type: string }
+        target_kind: { type: string }
+        platform_target_id: { type: string }
+        display_name: { type: string }
+        avatar_url: { type: string }
+        source_url: { type: string }
+        platform_extra:
+          type: object
+          additionalProperties: true
+    AccountHealth:
+      type: object
+      properties:
+        account_id: { type: string }
+        platform: { type: string }
+        status:
+          type: string
+          enum: [active, invalid, risk_limited, disabled, unknown]
+        credential_status: { type: string }
+        proxy_status: { type: string }
+        safe_message: { type: string }
+    ContentFetchRequest:
+      type: object
+      required: [target]
+      properties:
+        account_id: { type: string }
+        target:
+          $ref: "#/components/schemas/TargetRef"
+        cursor: { type: string }
+        limit: { type: integer, minimum: 1, maximum: 100 }
+        options:
+          type: object
+          additionalProperties: true
+    ContentItem:
+      type: object
+      properties:
+        platform: { type: string }
+        platform_content_id: { type: string }
+        content_type:
+          type: string
+          enum: [video, image_set, article, live, unknown]
+        title: { type: string }
+        description: { type: string }
+        cover_url: { type: string }
+        published_at: { type: string, format: date-time }
+        metrics:
+          type: object
+          additionalProperties: true
+        media_assets:
+          type: array
+          items:
+            $ref: "#/components/schemas/MediaAsset"
+        platform_extra:
+          type: object
+          additionalProperties: true
+    MediaAsset:
+      type: object
+      properties:
+        kind:
+          type: string
+          enum: [video, image, cover, audio, subtitle]
+        url: { type: string }
+        object_key: { type: string }
+        mime: { type: string }
+        ext: { type: string }
+        quality_label: { type: string }
+        download_status:
+          type: string
+          enum: [pending, downloading, done, failed, skipped]
+    CommentFetchRequest:
+      type: object
+      required: [platform_content_id]
+      properties:
+        account_id: { type: string }
+        platform_content_id: { type: string }
+        cursor: { type: string }
+        limit: { type: integer, minimum: 1, maximum: 500 }
+        platform_extra:
+          type: object
+          additionalProperties: true
+    Comment:
+      type: object
+      properties:
+        platform_comment_id: { type: string }
+        platform_content_id: { type: string }
+        parent_comment_id: { type: string }
+        author_platform_user_id: { type: string }
+        author_display_name: { type: string }
+        text: { type: string }
+        like_count: { type: integer }
+        created_at_platform: { type: string, format: date-time }
+        platform_extra:
+          type: object
+          additionalProperties: true
+    PublishTaskCreate:
+      type: object
+      required: [account_id, idempotency_key, payload]
+      properties:
+        account_id: { type: string }
+        idempotency_key: { type: string }
+        payload:
+          type: object
+          additionalProperties: true
+        media_refs:
+          type: array
+          items: { type: string }
+        visibility: { type: string }
+        scheduled_at: { type: string, format: date-time }
+        require_approval: { type: boolean }
+    SocialActionTaskCreate:
+      type: object
+      required: [account_id, action, idempotency_key]
+      properties:
+        account_id: { type: string }
+        action:
+          type: string
+          enum: [post_comment, reply_comment, follow, unfollow, send_dm]
+        idempotency_key: { type: string }
+        target_user_ref: { type: string }
+        target_content_ref: { type: string }
+        payload:
+          type: object
+          additionalProperties: true
+        scheduled_at: { type: string, format: date-time }
+        require_approval: { type: boolean }
+    TaskAccepted:
+      type: object
+      properties:
+        task_id: { type: string }
+        status:
+          type: string
+          enum: [draft, pending]
+        approval_status:
+          type: string
+          enum: [not_required, pending]
