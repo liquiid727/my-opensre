@@ -5,7 +5,7 @@
 - Spec ID: `RP-002`
 - Title: `RP-002 Xiaohongshu Adapter`
 - Epic: `Creator OS / MVP01 Adapters`
-- Status: `draft`
+- Status: `implemented`
 - Owner Agent: `implementation-agent`
 - Depends On:
   - `RP-001`
@@ -82,8 +82,8 @@ RP-002 不新增外部 API；复用 RP-001 的能力矩阵接口。后续接真�
 
 ## Definition of Done
 
-- [ ] 小红书 adapter 已注册为具体 adapter。
-- [ ] 小红书能力矩阵保持显式。
-- [ ] 小红书关键词目标解析无需网络。
-- [ ] 小红书笔记和评论归一化测试通过。
-- [ ] 不引入新的真实平台请求作为测试前置条件。
+- [x] 小红书 adapter 已注册为具体 adapter。
+- [x] 小红书能力矩阵保持显式。
+- [x] 小红书关键词目标解析无需网络。
+- [x] 小红书笔记和评论归一化测试通过。
+- [x] 不引入新的真实平台请求作为测试前置条件。

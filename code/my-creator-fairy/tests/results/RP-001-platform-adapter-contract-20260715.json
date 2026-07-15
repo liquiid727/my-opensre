@@ -1,0 +1,58 @@
+{
+  "runId": "RP-001-20260715-1911",
+  "specId": "RP-001",
+  "specVersion": "draft-2026-07-15",
+  "featureName": "Platform Adapter Contract",
+  "status": "passed_with_deferred_gates",
+  "releaseDecision": "prototype_slice_approved",
+  "startedAt": "2026-07-15T19:02:47+08:00",
+  "endedAt": "2026-07-15T19:11:45+08:00",
+  "summary": "Contract, normalization, registry, and XHS runtime tests passed; production credential, health, and write-task gates remain deferred.",
+  "flowResults": [
+    {
+      "name": "platform-adapter-contract-closeout",
+      "status": "passed",
+      "stages": [
+        {
+          "name": "focused-validation",
+          "status": "passed",
+          "scenarios": [
+            {
+              "name": "capability-and-normalization-contracts",
+              "status": "passed",
+              "relatedEndpointTargets": ["GET /api/platform-adapters/capabilities"],
+              "steps": ["run contract test", "run XHS adapter test", "run adapter runtime test"]
+            }
+          ],
+          "endpoints": [
+            {
+              "target": "creatorhub",
+              "name": "platform adapter capabilities",
+              "method": "GET",
+              "path": "/api/platform-adapters/capabilities",
+              "status": "covered_by_contract_test"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "items": [
+    {
+      "testType": "contract",
+      "target": "tests/test_platform_adapter_contract.py",
+      "status": "passed",
+      "durationMs": 400,
+      "summary": "Explicit capability matrix and platform-neutral normalizers passed.",
+      "evidence": "platform_adapter_contract: ok"
+    },
+    {
+      "testType": "review",
+      "target": "creatorhub@1e969d5",
+      "status": "passed",
+      "durationMs": 276200,
+      "summary": "No discrete correctness regressions identified.",
+      "evidence": "codex review --commit HEAD"
+    }
+  ]
+}

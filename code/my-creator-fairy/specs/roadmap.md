@@ -6,14 +6,14 @@ Use this file as the only canonical index for epic grouping, release sequencing,
 
 ### Platform Foundation
 
-- `RP-001 Platform Adapter Contract`
+- `RP-001 Platform Adapter Contract` _(implemented; production gates deferred to RP-004/RP-005)_
 
 ### MVP01 Adapters
 
-- `RP-002 Xiaohongshu Adapter` _(planned)_
-- `RP-003 WeChat MP Adapter` _(planned)_
+- `RP-002 Xiaohongshu Adapter` _(implemented)_
+- `RP-003 WeChat MP Adapter` _(contract slice implemented; official API integration planned)_
 - `RP-004 Adapter Task Runtime` _(planned)_
-- `RP-005 Credential Vault and Audit` _(planned)_
+- `RP-005 Credential Vault and Audit` _(metadata/redaction contract implemented; encrypted vault planned)_
 
 ## Release Order
 
@@ -31,3 +31,4 @@ Use this file as the only canonical index for epic grouping, release sequencing,
 - `RP-003` depends on `RP-001`.
 - `RP-004` depends on `RP-001` and provides scheduler/runtime support for `RP-002` and `RP-003`.
 - `RP-005` depends on `RP-001` and must land before any C-end credential hosting or write-operation automation.
+- `RP-003` read-only/official-API discovery may proceed after `RP-001`; publish and non-official credential modes require `RP-005` first.

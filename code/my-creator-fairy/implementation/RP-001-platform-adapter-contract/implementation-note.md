@@ -80,4 +80,9 @@ Result: all checks passed.
 
 ## Delivery Chain
 
-This note covers the transition from design/spec to implementation evidence for RP-001. Independent review evidence is not yet recorded under `reviews/`; that link should be completed before merge/release promotion.
+This note covers the transition from design/spec to implementation evidence for RP-001.
+
+- Review: `reviews/RP-001-platform-adapter-contract/review-report.md`
+- Test result: `tests/results/RP-001-platform-adapter-contract-20260715.json`
+- Implementation commit: `liquiid727/creatorhub@1e969d5`
+- Promotion: approved for the prototype slice; production write-task, health, and credential gates remain open.

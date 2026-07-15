@@ -1,0 +1,15 @@
+{
+  "spec_id": "RP-003",
+  "title": "WeChat MP Adapter Test Plan",
+  "status": "partially_executed",
+  "source_spec": "specs/RP-003-wechat-mp-adapter/spec.md",
+  "standardVersion": "0.1.0",
+  "owner_agents": ["testing-agent", "specialized-check-agent"],
+  "scenarios": [
+    {"id": "RP-003-T001", "priority": "P0", "name": "official and restricted capabilities remain explicit", "status": "covered"},
+    {"id": "RP-003-T002", "priority": "P0", "name": "token refresh is deduplicated and secret-safe", "status": "planned"},
+    {"id": "RP-003-T003", "priority": "P0", "name": "article and datacube payloads normalize without platform-specific global fields", "status": "covered"},
+    {"id": "RP-003-T004", "priority": "P0", "name": "permission and rate-limit errors are not returned as empty success", "status": "planned"},
+    {"id": "RP-003-T005", "priority": "P0", "name": "publish path is blocked until RP-005 approval and credential gates pass", "status": "planned"}
+  ]
+}

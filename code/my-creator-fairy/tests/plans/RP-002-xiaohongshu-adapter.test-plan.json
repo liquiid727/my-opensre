@@ -1,0 +1,50 @@
+{
+  "spec_id": "RP-002",
+  "title": "Xiaohongshu Adapter Test Plan",
+  "status": "executed",
+  "source_spec": "specs/RP-002-xiaohongshu-adapter/spec.md",
+  "standardVersion": "0.1.0",
+  "owner_agents": ["testing-agent", "unit-test-agent"],
+  "executed_at": "2026-07-15",
+  "execution_root": "/Users/mac_liquiid/Desktop/code/creatorhub",
+  "commands": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. python3 -B tests/test_xiaohongshu_adapter.py",
+      "result": "passed"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. python3 -B tests/test_adapter_task_runtime.py",
+      "result": "passed"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "RP-002-T001",
+      "priority": "P0",
+      "name": "concrete adapter registration",
+      "status": "covered",
+      "evidence": "tests/test_xiaohongshu_adapter.py"
+    },
+    {
+      "id": "RP-002-T002",
+      "priority": "P0",
+      "name": "network-free keyword resolution",
+      "status": "covered",
+      "evidence": "tests/test_xiaohongshu_adapter.py"
+    },
+    {
+      "id": "RP-002-T003",
+      "priority": "P0",
+      "name": "note and comment normalization",
+      "status": "covered",
+      "evidence": "tests/test_xiaohongshu_adapter.py"
+    },
+    {
+      "id": "RP-002-T004",
+      "priority": "P1",
+      "name": "runtime preserves legacy engine behavior",
+      "status": "covered",
+      "evidence": "tests/test_adapter_task_runtime.py and reviews/RP-002-xiaohongshu-adapter/review-report.md"
+    }
+  ]
+}

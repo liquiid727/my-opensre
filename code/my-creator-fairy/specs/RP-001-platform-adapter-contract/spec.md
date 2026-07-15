@@ -5,7 +5,7 @@
 - Spec ID: `RP-001`
 - Title: `RP-001 Platform Adapter Contract`
 - Epic: `Creator OS / Platform Foundation`
-- Status: `draft`
+- Status: `implemented_with_deferred_production_gates`
 - Owner Agent: `architecture-agent`
 - Depends On: []
 - Source Design: `design/platform-adapter.md`
@@ -188,11 +188,13 @@ RP-001 只定义模型和契约，不执行数据库迁移。后续实现阶段�
 
 ## Definition of Done
 
-- [ ] `PlatformAdapter` 契约和 capabilities 字段稳定。
-- [ ] 统一模型不再出现抖音专用命名作为跨平台字段。
-- [ ] 业务层调用平台能力必须通过 registry。
+- [x] `PlatformAdapter` 契约和 capabilities 字段稳定。
+- [x] 统一模型不再出现抖音专用命名作为跨平台字段。
+- [x] 业务层调用平台能力必须通过 registry。
 - [ ] 所有写操作任务都有幂等、限流、审计和人工确认扩展点。
-- [ ] `creatorhub` 原型能力已映射到迁移清单。
-- [ ] `openapi.yaml` 覆盖能力矩阵、健康检查和任务创建。
-- [ ] 测试计划覆盖安全、限流、能力声明和降级语义。
-- [ ] 后续小红书 adapter spec 可直接依赖本契约。
+- [x] `creatorhub` 原型能力已映射到迁移清单。
+- [x] `openapi.yaml` 覆盖能力矩阵、健康检查和任务创建。
+- [x] 测试计划覆盖安全、限流、能力声明和降级语义。
+- [x] 后续小红书 adapter spec 可直接依赖本契约。
+
+Production promotion remains blocked by the open write-task gate, which is assigned to `RP-005` and the formal `RP-004` runtime slice.

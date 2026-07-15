@@ -1,0 +1,58 @@
+{
+  "runId": "RP-002-20260715-1911",
+  "specId": "RP-002",
+  "specVersion": "draft-2026-07-15",
+  "featureName": "Xiaohongshu Adapter",
+  "status": "passed",
+  "releaseDecision": "prototype_slice_approved",
+  "startedAt": "2026-07-15T19:02:47+08:00",
+  "endedAt": "2026-07-15T19:11:45+08:00",
+  "summary": "Concrete adapter registration, network-free keyword resolution, note/comment normalization, and runtime delegation passed.",
+  "flowResults": [
+    {
+      "name": "xiaohongshu-adapter",
+      "status": "passed",
+      "stages": [
+        {
+          "name": "offline-contract-validation",
+          "status": "passed",
+          "scenarios": [
+            {
+              "name": "resolve-normalize-and-delegate",
+              "status": "passed",
+              "relatedEndpointTargets": ["POST /api/platform-adapters/xhs/resolve-target"],
+              "steps": ["resolve keyword", "normalize note", "flatten comments", "delegate runtime operations"]
+            }
+          ],
+          "endpoints": [
+            {
+              "target": "creatorhub",
+              "name": "resolve XHS target",
+              "method": "POST",
+              "path": "/api/platform-adapters/xhs/resolve-target",
+              "status": "covered_by_adapter_test"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "items": [
+    {
+      "testType": "unit-contract",
+      "target": "tests/test_xiaohongshu_adapter.py",
+      "status": "passed",
+      "durationMs": 400,
+      "summary": "XHS adapter contract passed.",
+      "evidence": "xiaohongshu_adapter: ok"
+    },
+    {
+      "testType": "unit-runtime",
+      "target": "tests/test_adapter_task_runtime.py",
+      "status": "passed",
+      "durationMs": 400,
+      "summary": "Runtime delegation and legacy compatibility passed.",
+      "evidence": "adapter_task_runtime: ok"
+    }
+  ]
+}

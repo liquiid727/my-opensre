@@ -1,0 +1,22 @@
+{
+  "runId": "RP-003-20260715-contract",
+  "specId": "RP-003",
+  "specVersion": "draft-2026-07-15",
+  "featureName": "WeChat MP Adapter Contract Slice",
+  "status": "passed",
+  "releaseDecision": "contract_slice_approved",
+  "startedAt": "2026-07-15T19:15:00+08:00",
+  "endedAt": "2026-07-15T20:24:14+08:00",
+  "summary": "Mode capabilities, target safety, article identity, article/metric normalization, and overflow handling passed.",
+  "flowResults": [],
+  "items": [
+    {
+      "testType": "contract",
+      "target": "tests/test_wechat_mp_adapter.py",
+      "status": "passed",
+      "durationMs": 500,
+      "summary": "Offline WeChat MP adapter contract passed.",
+      "evidence": "wechat_mp_adapter: ok"
+    }
+  ]
+}

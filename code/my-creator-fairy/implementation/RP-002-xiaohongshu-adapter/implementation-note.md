@@ -49,4 +49,6 @@ Result: all checks passed.
 - Continue extracting non-XHS platform implementations into concrete adapters.
 - Add `RP-004 Adapter Task Runtime` spec if runtime grows beyond the current XHS-first boundary.
 - Add credential vault before exposing any production account flow.
-- Add review evidence under `reviews/RP-002-xiaohongshu-adapter/` before promotion.
+- Review evidence: `reviews/RP-002-xiaohongshu-adapter/review-report.md`.
+- Test result: `tests/results/RP-002-xiaohongshu-adapter-20260715.json`.
+- Implementation commit pushed to `https://github.com/liquiid727/creatorhub` at `1e969d5`.
