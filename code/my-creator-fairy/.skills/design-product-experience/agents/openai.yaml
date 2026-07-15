@@ -1,0 +1,6 @@
+interface:
+  display_name: "Product Introduction Architect"
+  short_description: "Create narrative product pages, decks, motion, and deployment plans"
+  default_prompt: "Use $design-product-experience to create a polished product introduction page or Slidev deck with narrative, visuals, motion, implementation, and Vercel deployment."
+policy:
+  allow_implicit_invocation: true
