@@ -18,3 +18,7 @@ tiktop的视频制作
 
 热情 激情 浪漫
 真人出镜不是自己的优势，那就是需要训练自己的talk 也就是语条（虽然我自己感觉不太好，但是）
+
+
+https://linux.do/t/topic/2536794 这个的我们的creator-fariy 的一个base项目，可以参考这个 ：
+https://linux.do/t/topic/2536794
