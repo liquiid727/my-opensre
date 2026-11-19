@@ -116,6 +116,11 @@ class OpsAdminToolProvider:
         scope: dict[str, str],
     ) -> RegisteredTool:
         mcp_name = descriptor["name"]
+        # A reviewed write tool is exposed as a request-only call: Ops Admin never
+        # executes it here, it only creates a pending approval. The registered
+        # side effect stays READ_ONLY because this call cannot change the target;
+        # the mutation happens server-side after a different human approves it.
+        write_tool = descriptor.get("sideEffect") == "write"
 
         def run(**kwargs: Any) -> dict[str, Any]:
             binding = current_task_binding()
@@ -162,9 +167,15 @@ class OpsAdminToolProvider:
                 summary=summary,
             )
 
+        base_description = descriptor.get("description") or "审核后的只读 MCP 工具；结果必须作为外部证据核对。"
+        if write_tool:
+            base_description = (
+                "写操作（需人工审批）：调用只会提交审批，不会执行；批准后由服务端执行。"
+                "不要重复提交同一调用，结果以调查时间线为准。 " + base_description
+            )
         return RegisteredTool(
             name=name,
-            description=descriptor.get("description") or "审核后的只读 MCP 工具；结果必须作为外部证据核对。",
+            description=base_description,
             input_schema={
                 "type": "object",
                 "properties": {"arguments": descriptor["inputSchema"]},
