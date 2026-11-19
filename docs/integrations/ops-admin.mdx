@@ -1,0 +1,71 @@
+---
+title: "Ops Admin investigations"
+description: "Run a dedicated gateway with task-scoped read-only evidence tools."
+---
+
+Use a separate OpenSRE process for Ops Admin investigations. Ops Admin owns user
+identity, task state and resource permissions. This process only reasons over
+evidence obtained through the platform's restricted query APIs.
+
+Set the required `OPENSRE_AGENT_PROFILE=ops-admin-readonly` and `OPS_ADMIN_URL`
+(an HTTP origin without a path or embedded credentials). Optional settings are
+`OPS_ADMIN_TIMEOUT_SECONDS` (default `10`, greater than zero and at most `60`)
+and `OPS_ADMIN_SERVICE_ID` (default `opensre`). Configure model access and the
+gateway's service authentication separately using the existing gateway settings.
+Do not attach administrator cloud credentials or a full kubeconfig.
+
+Start the complete gateway from the repository root:
+
+```bash
+OPENSRE_AGENT_PROFILE=ops-admin-readonly OPS_ADMIN_URL=http://127.0.0.1:8080 \
+  uv run opensre gateway start --foreground
+```
+
+Starting only `gateway.web.webapp:app` does not attach the prompt queue; prompt
+submissions correctly return unavailable. A successful health probe alone does
+not prove that investigations work.
+
+The platform backend submits tasks through authenticated `/v1/prompt` with a
+separate `ops_admin` object containing `investigation_id`, `attempt_id`,
+`resource_id`, RFC3339 `start` and `end`, and a short-lived task `credential`.
+Never put this object in the ordinary prompt or context facts. Only non-secret
+scope is durable; a continuation must provide the same scope and a current
+credential. A process restart cannot silently restore credentials.
+
+The profile supplies exactly four data tools:
+
+| Tool | Evidence |
+| --- | --- |
+| `ops_admin_list_alerts` | Resource alerts |
+| `ops_admin_query_metrics` | Fixed resource metric templates |
+| `ops_admin_query_logs` | Bounded resource logs |
+| `ops_admin_get_resource_status` | Resource status |
+
+Each requires the exact task IDs, resource and time window advertised in its
+schema. Arbitrary SQL, PromQL, LogQL, URLs, headers and credentials are rejected.
+The platform checks the live task and current user permissions on every query;
+revocation and cancellation stop later reads. The only additional tool is the
+existing `ask_user_choice` control for supplemental questions. Tool approvals
+cannot authorize writes in this profile.
+
+Responses are bounded to 256 KiB, redacted before model input, and returned with
+evidence identifiers. A failed or missing data source is unavailable evidence;
+it is never proof of health. Use the platform page to view evidence, answer a
+question, cancel, or explicitly create another attempt.
+
+This integration is configured only as a dedicated service profile. It is
+intentionally absent from the general integration wizard and global tool
+discovery, so enabling a normal CLI integration cannot expand this tool set.
+Use an isolated test database and controlled data sources before enabling an
+enterprise connector. No production action is enabled by this profile.
+
+## Governed MCP (optional)
+
+MCP is a separate, disabled-by-default capability. Set
+`OPS_ADMIN_MCP_ENABLED=true` only in an isolated environment and provide
+`OPS_ADMIN_OPENSRE_SERVICE_TOKEN` for the private control-plane callback. The
+gateway asks Ops Admin for the current server version before discovery and
+before every call; a disabled, unreviewed, revoked, profile-mismatched, or
+resource-mismatched definition is rejected. Discovery creates schemas but
+never enables a tool. Credentials are referenced by environment name and
+resolved only inside the connector runtime.

@@ -112,6 +112,7 @@
         "group": "Integrations",
         "pages": [
           "integrations/index",
+          "integrations/ops-admin",
           {
             "group": "Monitoring",
             "expanded": false,

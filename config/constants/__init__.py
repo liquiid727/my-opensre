@@ -13,6 +13,16 @@ from config.constants.exports import __dir__ as __dir__
 from config.constants.exports import __getattr__ as __getattr__
 
 if TYPE_CHECKING:
+    from config.constants.ops_admin import OPS_ADMIN_PROFILE_ENV as OPS_ADMIN_PROFILE_ENV
+    from config.constants.ops_admin import OPS_ADMIN_READONLY_PROFILE as OPS_ADMIN_READONLY_PROFILE
+    from config.constants.ops_admin import OPS_ADMIN_URL_ENV as OPS_ADMIN_URL_ENV
+    from config.constants.ops_admin import OPS_ADMIN_TIMEOUT_SECONDS_ENV as OPS_ADMIN_TIMEOUT_SECONDS_ENV
+    from config.constants.ops_admin import OPS_ADMIN_SERVICE_ID_ENV as OPS_ADMIN_SERVICE_ID_ENV
+    from config.constants.ops_admin import OPS_ADMIN_QUERY_ENDPOINTS as OPS_ADMIN_QUERY_ENDPOINTS
+    from config.constants.ops_admin import OPS_ADMIN_MAX_RESPONSE_BYTES as OPS_ADMIN_MAX_RESPONSE_BYTES
+    from config.constants.ops_admin import OPS_ADMIN_MCP_ENABLED_ENV as OPS_ADMIN_MCP_ENABLED_ENV
+    from config.constants.ops_admin import OPS_ADMIN_MCP_SERVICE_TOKEN_ENV as OPS_ADMIN_MCP_SERVICE_TOKEN_ENV
+    from config.constants.ops_admin import OPS_ADMIN_MCP_CREDENTIAL_PREFIX as OPS_ADMIN_MCP_CREDENTIAL_PREFIX
     # Static re-exports so mypy sees real types; runtime stays lazy (``__getattr__``).
     from config.constants.account import (
         OPENSRE_ACCOUNT_CREDITS_PATH as OPENSRE_ACCOUNT_CREDITS_PATH,

@@ -7,6 +7,17 @@ from config.package_exports import bind_package_exports
 # Re-exported name -> leaf module. Importing this package must not load
 # those modules; ``__getattr__`` loads one leaf the first time a name is used.
 EXPORTS: dict[str, str] = {
+    "OPS_ADMIN_PROFILE_ENV": "ops_admin",
+    "OPS_ADMIN_READONLY_PROFILE": "ops_admin",
+    "OPS_ADMIN_URL_ENV": "ops_admin",
+    "OPS_ADMIN_TIMEOUT_SECONDS_ENV": "ops_admin",
+    "OPS_ADMIN_SERVICE_ID_ENV": "ops_admin",
+    "OPS_ADMIN_QUERY_ENDPOINTS": "ops_admin",
+    "OPS_ADMIN_MAX_RESPONSE_BYTES": "ops_admin",
+    "OPS_ADMIN_MCP_ENABLED_ENV": "ops_admin",
+    "OPS_ADMIN_MCP_SERVICE_TOKEN_ENV": "ops_admin",
+    "OPS_ADMIN_MCP_CREDENTIAL_PREFIX": "ops_admin",
+
     "CI_FIX_STATUS_LABEL": "ci_fixes",
     "REASONING_EFFORT_MODEL_PREFIXES": "llm",
     "HOSTED_MODEL_PROVIDER": "llm",
