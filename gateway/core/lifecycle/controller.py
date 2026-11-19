@@ -65,6 +65,7 @@ from infrastructure.turn_host.concurrency import (
 )
 from infrastructure.turn_host.turn_callback import TurnCallback
 from infrastructure.turn_host.turn_runner import TurnRunner
+from infrastructure.turn_host.runtime_policy import readonly_profile_enabled
 
 CredentialHydratorFactory = Callable[[], GatewayCredentialHydrator | None]
 
@@ -77,6 +78,8 @@ def _gateway_hosts_scheduler() -> bool:
     """
     from config.constants.scheduler import OPENSRE_GATEWAY_HOST_SCHEDULER_ENV
 
+    if readonly_profile_enabled():
+        return False
     value = os.getenv(OPENSRE_GATEWAY_HOST_SCHEDULER_ENV)
     return value is None or value.strip().lower() not in {"0", "false", "no", "off"}
 

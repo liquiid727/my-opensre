@@ -10,6 +10,10 @@ from __future__ import annotations
 
 from functools import partial
 
+from infrastructure.turn_host.runtime_policy import readonly_profile_enabled
+from integrations.ops_admin.config import OpsAdminConfig
+from integrations.ops_admin.tools.provider import readonly_build_config
+
 from core.agent_harness.runtime import AgentBuildConfig
 from infrastructure.turn_host.capability_policy import ensure_gateway_capability_policy
 from tools.interactive_shell.subprocess_presenter import (
@@ -20,6 +24,8 @@ from tools.registry import describe_registered_tool
 
 def chat_agent_build_config(*, hosts_scheduler: bool = False) -> AgentBuildConfig:
     """The chat defaults: scheduler capabilities, tool wording, and headless presentation."""
+    if readonly_profile_enabled():
+        return readonly_build_config(OpsAdminConfig.from_env())
     return AgentBuildConfig(
         apply_capability_policy=partial(
             ensure_gateway_capability_policy, hosts_scheduler=hosts_scheduler

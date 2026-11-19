@@ -57,6 +57,7 @@ class McpSessionOptions(TypedDict):
     config_env_name: str
     sse_url_hint: NotRequired[str | None]
     streamable_url_hint: NotRequired[str | None]
+    inherit_env: NotRequired[bool]
 
 
 @asynccontextmanager
@@ -69,6 +70,7 @@ async def open_mcp_session(
     config_env_name: str,
     sse_url_hint: str | None = None,
     streamable_url_hint: str | None = None,
+    inherit_env: bool = True,
 ) -> AsyncIterator[ClientSession]:
     """Open and initialize an MCP session for one configured integration."""
     from mcp.client.session import ClientSession  # type: ignore[import-not-found]
@@ -90,7 +92,7 @@ async def open_mcp_session(
                 command=config.command,
                 args=list(config.args),
                 env={
-                    **os.environ,
+                    **(os.environ if inherit_env else {}),
                     MCP_NO_COLOR_ENV: "1",
                     MCP_TERMINAL_ENV: MCP_TERMINAL_DUMB_VALUE,
                     **stdio_env,

@@ -61,7 +61,7 @@ def _current_inbox() -> AlertInbox:
     return inbox
 
 
-def require_local_or_token(request: Request) -> JSONResponse | None:
+def require_local_or_token(request: Request, *, require_token: bool = False) -> JSONResponse | None:
     """Bearer-token auth when configured; otherwise loopback callers only.
 
     The trust boundary shared by every mutating endpoint behind the alert
@@ -81,6 +81,10 @@ def require_local_or_token(request: Request) -> JSONResponse | None:
         if matched:
             return None
         return JSONResponse({"error": "unauthorized"}, status_code=HTTPStatus.UNAUTHORIZED)
+    if require_token:
+        return JSONResponse(
+            {"error": "listener_token_required"}, status_code=HTTPStatus.SERVICE_UNAVAILABLE
+        )
     client_host = request.client.host if request.client else ""
     if client_host in _LOOPBACK_HOSTS:
         if _browser_reached_loopback(request):

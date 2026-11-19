@@ -29,6 +29,7 @@ from config.constants.gateway import (
     PROMPT_RESULT_RETENTION_SECONDS,
 )
 from gateway.core.prompt_intake.job_store import PromptJobStore
+from infrastructure.turn_host.runtime_policy import TaskBinding
 
 logger = logging.getLogger(__name__)
 
@@ -152,6 +153,8 @@ class PromptJob:
     context: dict[str, str]
     actor: str
     submitted_at: float
+    readonly_scope: dict[str, str] | None = None
+    runtime_binding: TaskBinding | None = field(default=None, repr=False)
     state: PromptState = PromptState.QUEUED
     #: The turn's reply: a done prompt's answer, or what a prompt that asked wrote
     #: before its question.
@@ -216,6 +219,8 @@ class PromptJob:
                     record["answer"] = self.answer
                 if self.choice is not None:
                     record["choice"] = self.choice
+                    if "interaction_kind" in self.choice:
+                        record["interaction_kind"] = self.choice["interaction_kind"]
                 if self.answered_by:
                     # Where the answer went, for a caller whose answer response was lost.
                     record["answered_by"] = self.answered_by
@@ -244,6 +249,7 @@ class PromptJob:
             "v": _RECORD_VERSION,
             "revision": self.revision,
             **{name: getattr(self, name) for name in _RECORD_TEXT_FIELDS},
+            "readonly_scope": self.readonly_scope,
             "context": dict(self.context),
             "submitted_at": self.submitted_at,
             "state": self.state.value,
@@ -271,6 +277,7 @@ class PromptJob:
         context = record.get("context")
         failed = record.get("failed_integrations")
         choice = record.get("choice")
+        readonly_scope = record.get("readonly_scope")
         submitted_at = record.get("submitted_at")
         finished_at = record.get("finished_at")
         heartbeat_at = record.get("heartbeat_at")
@@ -281,6 +288,9 @@ class PromptJob:
             and isinstance(failed, list)
             and all(isinstance(vendor, str) for vendor in failed)
             and (choice is None or isinstance(choice, dict))
+            and (readonly_scope is None or (isinstance(readonly_scope, dict)
+                 and set(readonly_scope) == {"investigation_id", "attempt_id", "resource_id", "start", "end"}
+                 and all(isinstance(value, str) and value for value in readonly_scope.values())))
             and _is_number(submitted_at)
             and (finished_at is None or _is_number(finished_at))
             and (heartbeat_at is None or _is_number(heartbeat_at))
@@ -293,6 +303,7 @@ class PromptJob:
             return None
         return cls(
             **texts,
+            readonly_scope=readonly_scope,
             context=context,
             submitted_at=float(submitted_at),
             state=state,
@@ -410,6 +421,7 @@ class PromptQueue:
         actor: str,
         request_id: str = "",
         conversation: str = "",
+        runtime_binding: TaskBinding | None = None,
     ) -> PromptJob | None:
         """Queue a prompt; ``None`` when the queue is full.
 
@@ -439,6 +451,8 @@ class PromptQueue:
                 submitted_at=now,
                 request_id=request_id,
                 conversation=conversation,
+                readonly_scope=runtime_binding.scope() if runtime_binding else None,
+                runtime_binding=runtime_binding,
             )
             job._hosted_hint = hosted_hint
             with job._lock:
@@ -464,7 +478,10 @@ class PromptQueue:
             self._enqueue(job)
         return job
 
-    def answer(self, parent: PromptJob, answer: str, *, request_id: str = "") -> PromptJob | None:
+    def answer(
+        self, parent: PromptJob, answer: str, *, request_id: str = "",
+        runtime_binding: TaskBinding | None = None,
+    ) -> PromptJob | None:
         """Queue the answer as a follow-up on the parent's session; ``None`` when full.
 
         The store decides whether the question still takes an answer, so two
@@ -493,6 +510,8 @@ class PromptQueue:
                     prompt=answer,
                     context={},
                     actor=parent.actor,
+                    readonly_scope=runtime_binding.scope() if runtime_binding else parent.readonly_scope,
+                    runtime_binding=runtime_binding,
                     submitted_at=now,
                     session_id=parent.session_id,
                     parent_id=parent.id,

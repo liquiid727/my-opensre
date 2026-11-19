@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import uuid
 from collections.abc import Mapping
 from typing import Any
 
@@ -185,6 +186,17 @@ def approval_grant(pending: PendingUserChoice | None, answer: str) -> str | None
     return pending.interaction_id[len(_APPROVAL_INTERACTION_PREFIX) :]
 
 
+def interaction_kind(pending: PendingUserChoice) -> str:
+    """Classify an interaction from its typed origin, never its displayed text."""
+    if pending.interaction_id.startswith(_APPROVAL_INTERACTION_PREFIX):
+        return "tool_approval"
+    try:
+        uuid.UUID(pending.interaction_id)
+    except (ValueError, AttributeError):
+        return "unknown"
+    return "unknown" if pending.commands else "user_question"
+
+
 def choice_view(pending: PendingUserChoice) -> dict[str, Any]:
     """The pending choice as plain data a remote caller can render as a menu."""
     questions = [
@@ -196,6 +208,7 @@ def choice_view(pending: PendingUserChoice) -> dict[str, Any]:
         for question in pending.items()
     ]
     return {
+        "interaction_kind": interaction_kind(pending),
         "title": pending.title,
         "note": pending.note,
         "questions": questions,

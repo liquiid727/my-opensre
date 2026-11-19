@@ -8,6 +8,7 @@ as a follow-up job that resumes the session.
 
 from __future__ import annotations
 
+import json
 import logging
 import threading
 import time
@@ -26,6 +27,7 @@ from config.constants.tooling import ToolBlockedBy
 from config.principal import Actor, Principal, StorageScope
 from config.scope_context import bound_storage_scope
 from core.agent_harness import SessionCore, TurnResult
+from core.agent_harness.spi.prompt_chrome import is_literal_command
 from core.tool import (
     ERROR_KIND_REFUSED,
     BeforeToolCallResult,
@@ -49,6 +51,11 @@ from gateway.core.prompt_intake.jobs import (
 from gateway.core.prompt_intake.output import CollectingTurnOutput
 from gateway.core.session.thread_history import seed_session_history
 from infrastructure.analytics.usage_context import UsageSurface, bound_usage_context
+from infrastructure.turn_host.runtime_policy import (
+    bound_task_binding,
+    current_task_binding,
+    readonly_profile_enabled,
+)
 from infrastructure.turn_host.status_messages import EMPTY_RESPONSE_MESSAGE
 from infrastructure.turn_host.unattended_session import (
     AnswerRejected,
@@ -58,9 +65,13 @@ from infrastructure.turn_host.unattended_session import (
     approval_question,
     choice_view,
     hosted_conversation_id,
+    interaction_kind,
     invocation_key,
     prompt_with_facts,
 )
+from integrations.ops_admin.client import OpsAdminClient
+from integrations.ops_admin.config import OpsAdminConfig
+from integrations.ops_admin.policy import task_policy
 from tools.registry import integration_of_tool
 
 _APPROVAL_BLOCKED = (
@@ -198,6 +209,25 @@ class PromptWorker:
                 self._forget(session_id)
 
     def _run_job(self, job: PromptJob) -> None:
+        if readonly_profile_enabled() and (
+            job.readonly_scope is None or job.runtime_binding is None
+        ):
+            self._queue.fail(job, "task_capability_required")
+            return
+        if job.readonly_scope is not None and (
+            not readonly_profile_enabled()
+            or job.runtime_binding is None
+            or job.runtime_binding.scope() != job.readonly_scope
+        ):
+            self._queue.fail(job, "task_capability_required")
+            return
+        if job.readonly_scope is not None and is_literal_command(job.prompt):
+            self._queue.fail(job, "readonly_command_forbidden")
+            return
+        with bound_task_binding(job.runtime_binding):
+            self._run_scoped_job(job)
+
+    def _run_scoped_job(self, job: PromptJob) -> None:
         org = organization_id()
         # Bind before the session file is created. Opening first writes the
         # transcript under the host home, then the turn's scope looks elsewhere
@@ -231,6 +261,23 @@ class PromptWorker:
                 return
             session = opened
             text = _render_prompt(job)
+        policy = None
+        binding = current_task_binding()
+        if binding is not None and binding.profile_id:
+            try:
+                policy = task_policy(OpsAdminClient(OpsAdminConfig.from_env()), binding)
+            except ValueError:
+                self._sessions.close(session)
+                self._queue.fail(job, "profile_policy_rejected")
+                return
+        if policy:
+            application = {
+                key: policy.get(key)
+                for key in ("profile_id", "version", "instructions", "knowledge_refs")
+            }
+            text += "\n\nPlatform application configuration:\n" + json.dumps(
+                application, ensure_ascii=False
+            )
         if "github_connection_id" in job.context:
             session.integrations.github_connection_id = job.context["github_connection_id"]
         output = CollectingTurnOutput(on_status=self._progress_writer(job))
@@ -238,18 +285,31 @@ class PromptWorker:
         failures = _IntegrationFailures()
         with self._state_lock:
             approved = self._approved.get(session.session_id, set())
-        approvals = _Approvals(session, approved)
+        approvals = _Approvals(session, approved, readonly=job.readonly_scope is not None)
         output.tool_hooks = ToolExecutionHooks(
             before_tool_call=approvals.before_tool_call,
             after_tool_call=failures.after_tool_call,
         )
         denial = _Denial()
+        expired = threading.Event()
+        timer = None
+        if policy:
+
+            def expire() -> None:
+                expired.set()
+                output.turn_cancel.set()
+
+            timer = threading.Timer(policy["task_timeout_seconds"], expire)
+            timer.daemon = True
+            timer.start()
         try:
             with _turn_context(org, job, session, denial):
                 result = self._runner.run(
                     text, session, output, self._logger, slot_wait_seconds=PROMPT_SLOT_WAIT_SECONDS
                 )
         finally:
+            if timer is not None:
+                timer.cancel()
             if job.cancel_requested:
                 # A cancelled answer puts its question back to be answered again. A
                 # question the cancelled turn asked gets no answer, and a parked one
@@ -258,18 +318,32 @@ class PromptWorker:
             self._sessions.close(session)
 
         failed = failures.vendors()
+        if expired.is_set():
+            self._queue.fail(job, "profile_task_timeout", failed_integrations=failed)
+            return
+        if policy and len(output.answer.encode()) > policy["max_output_bytes"]:
+            self._queue.fail(job, "profile_output_limit", failed_integrations=failed)
+            return
         if job.cancel_requested:
             self._settle_cancelled(job, session.session_id, question, failed)
             return
         pending = getattr(session, "pending_user_choice", None)
         if pending is not None:
+            if job.readonly_scope is not None and interaction_kind(pending) != "user_question":
+                session.pending_user_choice = None
+                self._forget(session.session_id)
+                self._queue.fail(job, "readonly_interaction_forbidden")
+                return
             with self._state_lock:
                 self._asked[session.session_id] = pending
+            choice = choice_view(pending)
+            if job.readonly_scope is None:
+                choice.pop("interaction_kind", None)
             self._queue.needs_input(
                 job,
                 _question_text(pending),
                 answer=_reply_before_menu(output),
-                choice=choice_view(pending),
+                choice=choice,
                 failed_integrations=failed,
             )
             return
@@ -357,7 +431,12 @@ class PromptWorker:
     def _answer_text(self, job: PromptJob, session: SessionCore) -> str | None:
         """The resumed turn's user message; ``None`` after settling an answer that did not fit."""
         pending = session.pending_user_choice
-        granted = approval_grant(pending, job.prompt)
+        if job.readonly_scope is not None and (
+            pending is None or interaction_kind(pending) != "user_question"
+        ):
+            self._queue.fail(job, "readonly_interaction_forbidden")
+            return None
+        granted = None if job.readonly_scope is not None else approval_grant(pending, job.prompt)
         try:
             text = answer_pending_choice(session, job.prompt)
         except AnswerRejected:
@@ -423,12 +502,28 @@ class PromptWorker:
 class _Approvals:
     """Turns ``requires_approval`` into an Approve/Deny question the caller answers later."""
 
-    def __init__(self, session: SessionCore, approved: set[str]) -> None:
+    def __init__(self, session: SessionCore, approved: set[str], *, readonly: bool = False) -> None:
+        self._readonly = readonly
         self._session = session
         self._approved = approved
 
     def before_tool_call(self, request: ToolExecutionRequest) -> BeforeToolCallResult | None:
         tool = request.tool
+        if self._readonly:
+            allowed = {
+                "ops_admin_list_alerts",
+                "ops_admin_query_metrics",
+                "ops_admin_query_logs",
+                "ops_admin_get_resource_status",
+                "ask_user_choice",
+            }
+            if request.tool_call.name not in allowed or bool(
+                getattr(tool, "requires_approval", False)
+            ):
+                return BeforeToolCallResult(
+                    blocked=True, terminate=True, reason="Read-only profile forbids this tool."
+                )
+            return None
         if not bool(getattr(tool, "requires_approval", False)):
             return None
         name = request.tool_call.name

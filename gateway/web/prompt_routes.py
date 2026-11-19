@@ -42,6 +42,7 @@ from gateway.core.prompt_intake.jobs import (
     PromptState,
 )
 from infrastructure.alert_intake import require_local_or_token
+from infrastructure.turn_host.runtime_policy import TaskBinding, readonly_profile_enabled
 
 router = APIRouter()
 
@@ -66,7 +67,7 @@ class _Refused(Exception):
 
 @router.post(PROMPT_ROUTE_PATH)
 async def submit_prompt(request: Request) -> JSONResponse:
-    if (auth_error := require_local_or_token(request)) is not None:
+    if (auth_error := require_local_or_token(request, require_token=readonly_profile_enabled())) is not None:
         return auth_error
     try:
         queue = _ready_queue(request)
@@ -79,7 +80,7 @@ async def submit_prompt(request: Request) -> JSONResponse:
 
 @router.get(PROMPT_ROUTE_PATH + "/{prompt_id}")
 def prompt_result(prompt_id: str, request: Request) -> JSONResponse:
-    if (auth_error := require_local_or_token(request)) is not None:
+    if (auth_error := require_local_or_token(request, require_token=readonly_profile_enabled())) is not None:
         return auth_error
     try:
         queue = _ready_queue(request)
@@ -91,7 +92,7 @@ def prompt_result(prompt_id: str, request: Request) -> JSONResponse:
 
 @router.post(PROMPT_ROUTE_PATH + "/{prompt_id}/answer")
 async def answer_prompt(prompt_id: str, request: Request) -> JSONResponse:
-    if (auth_error := require_local_or_token(request)) is not None:
+    if (auth_error := require_local_or_token(request, require_token=readonly_profile_enabled())) is not None:
         return auth_error
     try:
         queue = _ready_queue(request)
@@ -105,7 +106,7 @@ async def answer_prompt(prompt_id: str, request: Request) -> JSONResponse:
 
 @router.post(PROMPT_ROUTE_PATH + "/{prompt_id}/cancel")
 async def cancel_prompt(prompt_id: str, request: Request) -> JSONResponse:
-    if (auth_error := require_local_or_token(request)) is not None:
+    if (auth_error := require_local_or_token(request, require_token=readonly_profile_enabled())) is not None:
         return auth_error
     try:
         queue = _ready_queue(request)
@@ -131,6 +132,13 @@ def _submitted(queue: PromptQueue, payload: dict[str, Any]) -> PromptJob:
     actor = _actor(payload.get("actor"))
     request_id = _request_id(payload.get("request_id"))
     conversation = _conversation(payload.get("conversation"))
+    binding = _task_binding(payload)
+    # Read-only tasks may continue a previously established conversation. The
+    # Ops Admin side pins the conversation to the investigation and rechecks
+    # the resource scope before issuing this request; the gateway still
+    # requires a stable request id so retries cannot create a second turn.
+    if binding is not None and not request_id:
+        raise _Refused("readonly_conversation_required", HTTPStatus.BAD_REQUEST)
     try:
         job = queue.submit(
             prompt,
@@ -138,26 +146,45 @@ def _submitted(queue: PromptQueue, payload: dict[str, Any]) -> PromptJob:
             actor=actor,
             request_id=request_id,
             conversation=conversation,
+            runtime_binding=binding,
         )
     except PromptNotSaved:
         raise _Refused(_STORE_UNAVAILABLE, HTTPStatus.SERVICE_UNAVAILABLE) from None
     if job is None:
         raise _queue_full()
+    if binding is not None and (job.readonly_scope != binding.scope() or job.actor != actor
+                                or job.prompt != prompt or job.context != context):
+        raise _Refused("request_scope_conflict", HTTPStatus.CONFLICT)
     return job
 
 
 def _answered(queue: PromptQueue, parent: PromptJob, payload: dict[str, Any]) -> PromptJob:
     answer = _answer(payload.get("answer"))
     request_id = _request_id(payload.get("request_id"))
+    binding = _task_binding(payload)
+    if parent.readonly_scope is not None:
+        if (binding is None or _task_scope(binding.scope()) != _task_scope(parent.readonly_scope)
+                or payload.get("actor") != parent.actor or not request_id):
+            raise _Refused("task_scope_mismatch", HTTPStatus.FORBIDDEN)
+        if not parent.choice or parent.choice.get("interaction_kind") != "user_question":
+            raise _Refused("readonly_interaction_forbidden", HTTPStatus.FORBIDDEN)
+    elif binding is not None:
+        raise _Refused("task_scope_mismatch", HTTPStatus.FORBIDDEN)
     try:
-        follow_up = queue.answer(parent, answer, request_id=request_id)
+        follow_up = queue.answer(parent, answer, request_id=request_id, runtime_binding=binding)
     except AnswerRefused as refused:
         raise _Refused(refused.code, HTTPStatus.CONFLICT) from None
     except PromptNotSaved:
         raise _Refused(_STORE_UNAVAILABLE, HTTPStatus.SERVICE_UNAVAILABLE) from None
     if follow_up is None:
         raise _queue_full()
+    if binding is not None and follow_up.readonly_scope != binding.scope():
+        raise _Refused("request_scope_conflict", HTTPStatus.CONFLICT)
     return follow_up
+
+
+def _task_scope(scope: dict[str, str]) -> dict[str, str]:
+    return {key: value for key, value in scope.items() if key != "attempt_id"}
 
 
 def _queue_full() -> _Refused:
@@ -279,3 +306,16 @@ def _error(code: str, status: HTTPStatus) -> JSONResponse:
 
 
 __all__ = ["router"]
+
+
+def _task_binding(payload: dict[str, Any]) -> TaskBinding | None:
+    """Read backend capabilities outside ordinary context and fail closed by profile."""
+    raw = payload.get("ops_admin")
+    if not readonly_profile_enabled():
+        if raw is not None:
+            raise _Refused("readonly_profile_required", HTTPStatus.FORBIDDEN)
+        return None
+    try:
+        return TaskBinding.from_payload(raw)
+    except (ValueError, TypeError):
+        raise _Refused("invalid_task_binding", HTTPStatus.BAD_REQUEST) from None

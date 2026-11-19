@@ -11,9 +11,11 @@ from __future__ import annotations
 
 from http import HTTPStatus
 
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ValidationError
+from starlette.middleware.base import RequestResponseEndpoint
+from starlette.responses import Response as StarletteResponse
 
 from bootstrap.process import WEB_PROFILE, configure_process
 from config.environment import get_environment
@@ -24,10 +26,12 @@ from gateway.core.process.readiness import is_gateway_ready
 from gateway.core.process.shutdown_record import PREVIOUS_SHUTDOWN_COMPONENT
 from gateway.core.process.state_counts import read_state_counts
 from gateway.web.loop_routes import router as loop_router
+from gateway.web.ops_admin_mcp_routes import router as ops_admin_mcp_router
 from gateway.web.prompt_routes import router as prompt_router
 from infrastructure.alert_intake import router as alert_router
 from infrastructure.request_body_limit import RequestBodyLimitMiddleware
 from infrastructure.scheduling.scheduler.claim_lease import default_claim_lease_renewer
+from infrastructure.turn_host.runtime_policy import readonly_profile_enabled
 
 configure_process(WEB_PROFILE)  # env → sentry → adapters
 
@@ -53,11 +57,32 @@ class HealthResponse(BaseModel):
 app = FastAPI()
 # Above routing: every mutating route is bounded before FastAPI buffers a body.
 app.add_middleware(RequestBodyLimitMiddleware)
+
+
+@app.middleware("http")
+async def restrict_profile_ingress(
+    request: Request, call_next: RequestResponseEndpoint
+) -> StarletteResponse:
+    """A dedicated investigation service admits no other mutating HTTP ingress."""
+    if (
+        readonly_profile_enabled()
+        and request.method not in {"GET", "HEAD", "OPTIONS"}
+        and request.url.path != "/v1/prompt"
+        and not request.url.path.startswith("/v1/prompt/")
+        and not request.url.path.startswith("/v1/ops-admin/mcp/")
+    ):
+        return JSONResponse(
+            {"error": "readonly_ingress_forbidden"}, status_code=HTTPStatus.FORBIDDEN
+        )
+    return await call_next(request)
+
+
 # Health liveness (/healthz) and alert intake (/alerts) live in the shared
 # router so the interactive shell can serve them without importing the gateway.
 app.include_router(alert_router)
 # Remote prompts run only inside the gateway process, which attaches the queue at startup.
 app.include_router(prompt_router)
+app.include_router(ops_admin_mcp_router)
 app.include_router(loop_router)
 
 

@@ -32,6 +32,7 @@ from gateway.core.prompt_intake import (
 )
 from gateway.transports.names import TransportName
 from gateway.transports.startup import (
+    ChatStartup,
     TransportHandle,
     start_transports,
     stop_transports,
@@ -40,6 +41,7 @@ from gateway.web.startup import start_web_server
 from gateway.web.web_server import WebAppServerHandle
 from infrastructure.analytics.provider import analytics_delivery_unavailable
 from infrastructure.turn_host.concurrency import process_turn_gate
+from infrastructure.turn_host.runtime_policy import readonly_profile_enabled
 from infrastructure.turn_host.turn_callback import TurnCallback
 
 _WEB_COMPONENT = "web"
@@ -98,7 +100,10 @@ def start_gateway(
         prompt_worker = start_prompt_intake(logger=logger, runner=prompt_runner)
         statuses[_PROMPT_COMPONENT] = "accepting"
     web = start_web_server(logger=logger)
-    chat = start_transports(logger=logger, handler=handler)
+    if readonly_profile_enabled():
+        chat = ChatStartup(handles=[], statuses={})
+    else:
+        chat = start_transports(logger=logger, handler=handler)
     statuses[_WEB_COMPONENT] = web.status
     for name, status in chat.statuses.items():
         statuses[name] = status
