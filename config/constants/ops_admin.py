@@ -11,6 +11,9 @@ OPS_ADMIN_QUERY_ENDPOINTS = {
     "ops_admin_query_metrics": "metrics",
     "ops_admin_query_logs": "logs",
     "ops_admin_get_resource_status": "resource-status",
+    "ops_admin_list_changes": "changes",
+    "ops_admin_query_traces": "traces",
+    "ops_admin_search_runbooks": "runbooks",
 }
 OPS_ADMIN_PROPOSAL_TOOL = "ops_admin_create_action_proposal"
 OPS_ADMIN_MAX_RESPONSE_BYTES = 262144

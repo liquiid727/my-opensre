@@ -64,13 +64,13 @@ def test_real_provider_scope_and_transport_contract() -> None:
             assert trusted.credential not in json.dumps(result)
             assert not tool.requires_approval
             assert trusted.credential not in json.dumps(tool.public_input_schema)
-    assert len(calls) == 4
+    assert len(calls) == len(OPS_ADMIN_QUERY_ENDPOINTS)
     assert {str(call.url).rsplit("/", 1)[-1] for call in calls} == set(OPS_ADMIN_QUERY_ENDPOINTS.values())
     # A previously discovered tool is useless outside the turn or in another task.
     assert tools[0](**trusted.scope())["error"] == "scope_rejected"
     with bound_task_binding(replace(trusted, investigation_id="18")):
         assert tools[0](**trusted.scope())["error"] == "scope_rejected"
-    assert len(calls) == 4
+    assert len(calls) == len(OPS_ADMIN_QUERY_ENDPOINTS)
 
 
 def test_multi_resource_provider_requires_one_authorized_resource_choice() -> None:
